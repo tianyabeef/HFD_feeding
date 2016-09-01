@@ -1,0 +1,640 @@
+---
+title: "Supplementary Methods"
+author: "wucy"
+date: "Tuesday, August 30, 2016"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 1
+    highlight: pygments
+---
+
+#Fig.1 Effects of IL-17 on body weight during HFD feeding
+    We use the other drawing software.
+    
+#Fig.2 IL-17 significantly influences HFD induced disorders
+    We use the other drawing software.
+    
+#Fig.3 Metagenomic analysis of mice feces. Before HFD feeding feces were 827 harvested (0w)
+    We use the other drawing software.
+
+This beginning workspace contains: 
+* `profiling_species_absolute`: Species abundance
+* `profiling_species`: Relative abundance on species
+* `profile_phylum`: Relative abundance on phylum
+* `profile_genus`: Relative abundance on genus
+```{r,cache=TRUE}
+# profiling_species_absolute <- read.table("wucy/lipidmice.species", sep = "\t",header=T, row.names=1, dec=".")
+# profiling_species <- read.table("wucy/uniform_lipidmice.species",sep="\t",header=T,row.names=1,dec=".")
+# profile_phylum <- read.table("wucy/uniform_lipidmice.phylum",sep="\t",header=T,row.names = 1,dec=".")
+# profile_genus <- read.table("wucy/uniform_lipidmice.genus",sep="\t",header=T,row.names = 1,dec=".")
+###Load the necessary data.
+load("data/fig3a-abc.RData")
+###Row: the name of the species; Col: the name of the sample.
+head(profiling_species_absolute)
+###Row: the name of the species; Col: the name of the sample.
+head(profiling_species)
+###Row: the name of the species; Col: the name of the sample.
+head(profile_phylum)
+###Row: the name of the species; Col: the name of the sample.
+head(profile_genus)
+###Load the necessary function.
+source("data/functions.R")
+#The total of 14 color template
+palette <- c("red", "gray", "cornflowerblue", "chartreuse3", "yellow", "honeydew4",
+            "indianred4", "khaki", "lightseagreen", "lightslateblue", "magenta",
+            "orange2", "purple", "black")
+###Obtain color
+colfunc <- colorRampPalette(palette, interpolate = "spline", space = "Lab")
+```
+
+##Fig3-A
+* `a`: species number in the feces from WT or Il-17a-/- mice before HFD feeding.
+* `b`: Shannon Index indicated the composition difference between these two groups.
+* `c`: Taxon-based analysis at genus level among the two groups
+
+```{r,cache=TRUE,eval=TRUE,fig.width=8,fig.height=3}
+opar <- par(no.readonly=TRUE)
+###Set the layout
+layout(t(as.matrix(c(1,2,3,4))),widths = c(6,6,6,11))
+par(oma = c(2,3,1,4), mar = c(2, 4, 2, 2))
+
+###Species number count bar plot-----------------------------------------------------------
+
+### species composition  use data absolute
+data <- profiling_species_absolute
+data <- data[,c("KO_0w", "WT_0w")]
+colnames(data) <- c("KO", "WT")
+###Abundance of species filter
+data[data <= 1e-6] <- 0
+###Remove the sum of each row ==0
+data <- data[which(rowSums(data) > 0),]
+###Data were normalized
+data <- apply(data, 2, uniform)
+###Species counting
+sumvect <- apply(data, 2, numberof)
+barplot(sumvect,col=c("red", "green"), ylab = "Species number counting", xlim = c(-0.3, 3))
+
+# shannon plot----------------------------------------------------------------------
+
+###Calculate shannon value
+numvect <- apply(data, 2, shannon)
+barplot(numvect,col=c("red", "green"), ylab = "Shannon Wienner index", xlim = c(-0.3, 3))
+
+# genus composition plot------------------------------------------------------------------
+
+### genus composition  data 
+data <- profile_genus
+data = data[,c("KO_0w", "WT_0w")]
+colnames(data) = c("KO", "WT")
+###Remove the sum of each row ==0
+temp <- rm_sort(data)
+data <- temp[[1]]
+table <- temp[[2]]
+top <- 12
+###Statistics of the top and other value
+tabletmp <- apply(table, 2, merge_low_abundance, vector_name = rownames(table))
+rowsum <- apply(tabletmp, 1, sum)
+tabletmp <- tabletmp[which(rowsum != 0),]
+table2 <- table <- as.data.frame(tabletmp[1:(nrow(tabletmp) -1),])
+###order table
+table <- table[do.call(order, -table2),]
+table <- as.matrix(rbind(table, others = tabletmp["others",]))
+
+barplot(table, col = colfunc(nrow(table)), ylab = "Relative abundance", xlim = c(-0.3, 3))
+plot(0, type = "n", xaxt = "n", yaxt = "n", bty ="n", xlab = "", ylab = "", 
+     xlim = c(-1, 1), ylim = c(-1, 1))
+legend(-1.9, 1.1, pch = 15, col = rev(colfunc(nrow(table))), legend = rev(rownames(table)),
+       bty = "n", pt.cex = 2, ncol = 1, xpd = NA)
+
+```
+
+
+
+##Fig3-B
+* `a`: Total OTU sequences taxonomically assigned to bacterial phyla from fecal metagenomes of WT
+    or Il-17a-/- mice at weeks 0, 14 and 27. Each bar represents the mean of the microbiota 
+    composition from five to eight mice
+
+```{r,cache=TRUE,fig.height=5,fig.width=7}
+par(opar)
+###Set the layout
+par(mfrow = c(1,2), xpd = NA)
+### phylum level composition
+data <- profile_phylum
+data <- data[, c("WT_0w", "WT_14w", "WT_27w", "KO_0w", "KO_14w", "KO_27w")]
+temp <- rm_sort(data)
+data <- temp[[1]]
+table <- temp[[2]]
+spa <- 0.2
+width <- 1
+colornumber <- 20
+top <- 12
+blacked <- T
+if(nrow(table) > top+1){
+  merge_low_abundance <- function(x, vector_name){
+    others_ind <- order(-x)[-(1:top)]
+    others <- sum(x[others_ind])
+    x[others_ind] <- 0
+    x <- c(x, others = others)
+    x
+  }
+  tabletmp <- apply(table, 2, merge_low_abundance, vector_name = rownames(table))
+  rowsum <- apply(tabletmp, 1, sum)
+  tabletmp <- tabletmp[which(rowsum != 0),]
+  table2 <- table <- as.data.frame(tabletmp[1:(nrow(tabletmp) -1),])
+  table <- table[do.call(order, -table2),]
+  table <- as.matrix(rbind(table, others = tabletmp["others",]))
+}else{
+  blacked <- F
+  table <- table[do.call(order, -as.data.frame(table)),]
+  table <- as.matrix(table)
+  top <- nrow(table)
+}
+
+barplot(table, col = colfunc(nrow(table)), ylab = "Relative abundance", xaxt = "n", main = "phylum")
+text(seq(from = 0.7,length = ncol(table), by=spa + width),par("usr")[3] - 0.01,
+     labels=c("0w", "14w", "27w", "0w", "14w", "27w"),xpd=T,font=1,cex=0.8, pos = 1)
+segments(0.4, -0.1, 3.4, -0.1)
+segments(4.2, -0.1, 7, -0.1)
+text(c(1.9, 5.5),par("usr")[3] - 0.1,labels=c("WT", "KO"),xpd=T,font=1,cex=1, pos = 1)
+plot(0, type = "n", xaxt = "n", yaxt = "n", bty ="n", xlab = "", ylab = "", 
+     xlim = c(-1, 1), ylim = c(-1, 1))
+legend(-1.9, 0.8, pch = 15, col = rev(colfunc(nrow(table))), legend = rev(rownames(table)), 
+       bty = "n", pt.cex = 2, ncol = 1, xpd = NA)
+```
+
+
+##Fig3-C
+* `a`: Venn diagram of WT and KO (Il-17-/-) mice in 0w, 14w and 27w after HFD feeding
+
+```{r,cache=TRUE,fig.height=3,fig.width=3}
+library("grid") 
+library("VennDiagram")
+### species composition  use data absolute
+data <- profiling_species_absolute
+###Abundance of species filter
+data[data <= 1e-6] <- 0
+data <- apply(data, 2, uniform)
+data <- as.data.frame(data)
+###the sample list,KO_0w VS WT_0w,KO_14w Vs WT_14w,KO_27w vs WT_27w
+samplelist <- c("KO_0w", "WT_0w","KO_14w", "WT_14w","KO_27w", "WT_27w")
+for(i in 1:(length(samplelist)/2)*2-1){
+  samples <- samplelist[i:(i+1)]
+  numberlist <- as.list(data[, samples])
+  rnames <- rownames(data)
+  modifylist <-function(list){
+    numberlistnames <- names(list)
+    newlist <- list()
+    for (i in numberlistnames){
+      newlist[[i]] <- rnames[which(list[[i]] > 0)]
+    }
+    newlist
+  }
+  newlist <- modifylist(numberlist)
+  venn.diagram(newlist, imagetype="png",category.names = names(newlist), fill = c("red", "blue"),
+               paste(c(samples[1], "_", samples[2], ".png"), collapse = ""), cat.dist = 0.08, 
+               margin = 0.2, cat.cex = 2, cex = 2, main.cex = 1.6, cat.pos = c(-60, 60),
+               main = paste("\n", "\n", "\n", "\n", "\n", paste(samples, collapse = " vs "), sep = ""))
+
+}
+
+```
+![](KO_0w_WT_0w.png)
+![](KO_14w_WT_14w.png)
+![](KO_27w_WT_27w.png)
+
+
+
+##A. fig3-C
+* `b`: (left) New appearing species in 14w compared with 0w
+
+```{r,cache=TRUE,fig.height=8,fig.width=10}
+par(opar) 
+data <- profiling_species_absolute
+###Abundance of species filter
+data[data <= 1e-6] <- 0
+###Data were normalized
+data <- apply(data, 2, uniform)
+data <- data[,c("WT_14w", "WT_0w", "KO_14w", "KO_0w")]
+###set top
+tops <- 30
+###set drawing parameters
+spa <- 1
+width <- 1
+###set layout
+par(mar=c(15, 5, 5, 5), oma = c(1,1,1,1))
+layout(rbind(c(1,2,1),c(1,2,1),c(1,1,1)), width = c(6.8, 9.2, 0.25), height = c(2, 2, 0.4))
+###set times
+times <- 2
+wtappear <- data[,"WT_14w"] > times * data[, "WT_0w"]
+koappear <- data[,"KO_14w"] > times * data[, "KO_0w"]
+appeartimes2 <- data[wtappear & koappear,]
+rowsums <- rowSums(appeartimes2)
+appeartimes2 <- appeartimes2[order(-rowsums),]
+###drawing barplot
+barplot(t(appeartimes2[1:tops,]), beside = T, main = paste(times, " times", sep = " "), 
+        xaxt = "n", col = c("red", "pink", "orange", "yellow"))
+text(seq(from = 4 * width,length = nrow(appeartimes2[1:tops,]), by=4 * spa + width),
+     par("usr")[3] - 0.001,srt=45,adj=0,labels=rownames(appeartimes2[1:tops,]),
+     xpd=T,font=1,cex=1.2, pos = 2)
+legend("topright", legend = colnames(appeartimes2), pch = 15, 
+       col = c("red", "pink", "orange", "yellow"),
+       bty = "n", y.intersp = 2, pt.cex = 3)
+barplot(t(appeartimes2[16:tops,]), beside = T, xaxt = "n",
+        col = c("red", "pink", "orange", "yellow"))
+
+###end
+```
+
+##Fig3-C
+* `b`: (right) Increasing species in 27w compared with 14w
+```{r,cache=TRUE,fig.height=8,fig.width=10}
+par(opar)
+data <- profiling_species_absolute
+###Abundance of species filter
+data[data <= 1e-6] <- 0
+###Data were normalized
+data <- apply(data, 2, uniform)
+data <- data[,c("WT_27w", "WT_14w", "KO_27w", "KO_14w")]
+wt27 <- (data[,"WT_27w"] > 0)
+wt14 <- (data[,"WT_14w"] > 0)
+ko27 <- (data[,"KO_27w"] > 0)
+ko14 <- (data[,"KO_14w"] > 0)
+data <- data[wt27 & wt14 & ko27 & ko14, ]
+###set top
+tops <- 30
+###set drawing parameters
+spa <- 1
+width <- 1
+###set time
+times <- 2
+wtappear <- data[,"WT_27w"] > times * data[, "WT_14w"]
+koappear <- data[,"KO_27w"] > times * data[, "KO_14w"]
+appeartimes2 <- data[wtappear & koappear,]
+rowsums <- rowSums(appeartimes2)
+appeartimes2 <- appeartimes2[order(-rowsums),]
+###set layout
+par(mar=c(15, 5, 5, 5), oma = c(1,1,1,1))
+
+barplot(t(appeartimes2), beside = T, main = paste(times, " times", sep = " "), 
+        xaxt = "n", col = c("red", "pink", "orange", "yellow"))
+text(seq(from = 4 * width,length = nrow(appeartimes2), 
+         by=4 * spa + width),par("usr")[3] - 0.001,srt=45,
+     adj=0,labels=rownames(appeartimes2),xpd=T,font=1,cex=0.8, pos = 2)
+legend("topright", legend = colnames(appeartimes2), pch = 15, col = c("red", "pink", "orange", "yellow"),
+       bty = "n", y.intersp = 2, pt.cex = 3)
+
+```
+
+
+##Fig3-D
+* `right`: Right: tendency of species proportion
+
+```{r,cache=TRUE,fig.height=6,width=8}
+par(opar)
+data <- profiling_species_absolute
+###Abundance of species filter
+data[data <= 1e-6] <- 0
+###Data were normalized
+data <- apply(data, 2, uniform)
+###Do filter conditions with max_data
+max_data <- apply(data, 1, max)
+data <- data[which(max_data >= 1e-3),]
+###To obtain rownames
+rnames <- rownames(data)
+prefix <- "[KW].*_[0-9]*w"
+###TO obtain samplenames
+samplenames <- colnames(data)[grep(prefix, colnames(data))]
+subtable <- data[,samplenames]
+
+check_core_species <- function(vect, number){
+  if(length(which(vect > 0)) >= number){
+    T
+  }else{
+    F
+  }
+}
+
+core_vect <- apply(subtable, 1, check_core_species, number = ncol(subtable))
+kowt <- subtable[core_vect,]
+subdata <- data[rownames(kowt),grep("_[0-9]+w", colnames(data))]
+###Statistical correlation
+cc <- cor(t(subdata), method = "spearman")
+###merge species as long as they are correlated.
+cc <- abs(cc)
+rho <- 0.85
+d <-  1-cc
+d <- as.dist(d)
+hc <- hclust(d, "complete")
+###plot(hc);abline(rho,0, col="red")
+tt <- cutree(hc,h=1-rho)
+
+color_vect <- colfunc(nrow(table))
+
+###putout 02.species.relation
+write.table("representer\tspecies", "02_species.relation", quote = F, col.names = F, row.names = F)
+relation <- list()
+finalnames <- vector()
+for (rownumber in range(tt)[1]:range(tt)[2]){
+  row_names <- names(tt[which(tt == rownumber)])
+  if(length(row_names) > 1){
+    newmat <- subdata[row_names,]
+    newmatsum <- apply(newmat, 1, sum)
+    finalnames <- c(finalnames, row_names[which(newmatsum == max(newmatsum))])
+    relation[[row_names[which(newmatsum == max(newmatsum))]]] <- row_names[-which(newmatsum == max(newmatsum))]
+    write.table(paste(row_names, collapse = "\t"), "02_species.relation", quote = F, col.names = F, 
+                row.names = F, append = T)
+  }else{
+    finalnames <- c(finalnames, row_names)
+    relation[[row_names]] <- NA
+    write.table(row_names, "02_species.relation", quote = F, col.names = F, row.names = F, append = T)
+  }
+}
+finalmat <- subdata[finalnames,]
+
+prefix <- "[KW].*_[0-9]*w"
+samplenames <- colnames(finalmat)[grep(prefix, colnames(finalmat))]
+kowt <- finalmat[,samplenames]
+
+
+###load data
+ko_prefix <- "KO"
+ko_names <- colnames(kowt)[grep(ko_prefix, colnames(kowt))]
+ko <- kowt[, ko_names]
+wt_prefix <- "WT"
+wt_names <- colnames(kowt)[grep(wt_prefix, colnames(kowt))]
+wt <- kowt[, wt_names]
+cutoff <- 3
+check_variation <- function(vect, cutoff){
+  max_value <- max(vect)
+  min_value <- min(vect)
+  
+  if(max_value < 0){
+    F
+  }else if(min_value == 0){
+    T
+  }else if(max_value / min_value >= cutoff) {
+    T
+  }else{
+    F
+  }
+}
+
+ko_names <- rownames(kowt)[apply(ko, 1, check_variation, cutoff = cutoff)]
+wt_names <- rownames(kowt)[apply(wt, 1, check_variation, cutoff = cutoff)]
+table <- kowt[unique(c(ko_names, wt_names)),]
+
+test <- cor(t(table[,1:3]), t(table[,4:6]), method = "spearman")
+diag_names <- names(diag(test)[which(diag(test) == -1)])
+
+write.table("representer\tspecies", "02_species.relation", quote = F, col.names = F, row.names = F)
+for (name in diag_names){
+  if(is.na(relation[[name]][1])){
+    write.table(name, "02_species.relation", quote = F, col.names = F, row.names = F, append = T)
+  }else{
+    write.table(paste(c(name, relation[[name]]), collapse = "\t"), "02_species.relation", quote = F, 
+                col.names = F, row.names = F, append = T)
+  }
+}
+table <- table[diag_names,]
+
+###set layout
+layout(rbind(c(1,2),c(3,4),c(5,5)), width = c(3, 3), height = c(3, 3, 2))
+###draw plot a
+plot(0, xlim = c(0, (ncol(table) + 2)), ylim = c(0, 0.05), bty = "n", type = "n", xlab = "", 
+     ylab = "", xaxt = "n",main = "a")
+axis(1, at = 1:(ncol(table) + 2), labels = rep("", (ncol(table) + 2)))
+text(seq(from = 0.9, length = (ncol(table) + 2), by = 1),par("usr")[3] - 0.008,srt=90,adj=0,
+     labels=c(colnames(table), "NOR_14w", "NOR_27w"),xpd=T,font=1,cex=0.9, pos = 1)
+abline(v = 1:(ncol(table) +2), col = "gray")
+rownumber <- 0
+speciesnames <- c()
+colornames <- c()
+for ( i in 1:nrow(table)){
+  if(table[i,1] < table[i,2] && table[i,2] < table[i,3]){
+    rownumber <- rownumber + 1
+    speciesnames <- c(speciesnames, rownames(table)[i])
+    colornames <- c(colornames, palette[rownumber])
+    lines(1:3, as.vector(table[i,1:3]) , col = palette[rownumber], lwd = 2)
+    lines(4:6, as.vector(table[i,4:6]) , col = palette[rownumber], lwd = 2)
+    lines((ncol(table) + 1):(ncol(table) + 2), as.vector(data[rownames(table)[i], c("NOR_14w", "NOR_27w")]),
+          col = palette[rownumber], lwd = 2)
+  }
+}
+###draw plot b
+plot(0, xlim = c(0, (ncol(table) + 2)), ylim = c(0, 1), bty = "n", type = "n", xlab = "", ylab = "",
+     xaxt = "n", main = "b")
+axis(1, at = 1:(ncol(table) + 2), labels = rep("", (ncol(table) + 2)))
+text(seq(from = 0.9, length = (ncol(table) + 2), by = 1),par("usr")[3] - 0.17,srt=90,adj=0,
+     labels=c(colnames(table), "NOR_14w", "NOR_27w"),xpd=T,font=1,cex=0.9, pos = 1)
+abline(v = 1:(ncol(table) +2), col = "gray")
+for ( i in 1:nrow(table)){
+  if(table[i,1] > table[i,2] && table[i,2] > table[i,3]){
+    rownumber <- rownumber + 1
+    speciesnames <- c(speciesnames, rownames(table)[i])
+    colornames <- c(colornames, palette[rownumber])
+    lines(1:3, as.vector(table[i,1:3]) , col = palette[rownumber], lwd = 2)
+    lines(4:6, as.vector(table[i,4:6]) , col = palette[rownumber], lwd = 2)
+    lines((ncol(table) + 1):(ncol(table) + 2), as.vector(data[rownames(table)[i],c("NOR_14w", "NOR_27w")]),
+          col = palette[rownumber], lwd = 2)
+  }
+}
+
+
+###draw plot c
+plot(0, xlim = c(0, (ncol(table) + 2)), ylim = c(0, 0.07), bty = "n", type = "n", xlab = "", ylab = "", 
+     xaxt = "n", main = "c")
+axis(1, at = 1:(ncol(table) + 2), labels = rep("", (ncol(table) + 2)))
+text(seq(from = 0.9, length = (ncol(table) + 2), by = 1),par("usr")[3] - 0.011,srt=90,adj=0,
+     labels=c(colnames(table),"NOR_14w", "NOR_27w"),xpd=T,font=1,cex=0.9, pos = 1)
+abline(v = 1:(ncol(table) +2), col = "gray")
+for ( i in 1:nrow(table)){
+  if(table[i,1] > table[i,2] && table[i,2] < table[i,3]){
+    rownumber <- rownumber + 1
+    speciesnames <- c(speciesnames, rownames(table)[i])
+    colornames <- c(colornames, palette[rownumber])
+    lines(1:3, as.vector(table[i,1:3]) , col = palette[rownumber], lwd = 2)
+    lines(4:6, as.vector(table[i,4:6]) , col = palette[rownumber], lwd = 2)
+    lines((ncol(table) + 1):(ncol(table) + 2), as.vector(data[rownames(table)[i], c("NOR_14w", "NOR_27w")]),
+          col = palette[rownumber], lwd = 2)
+  }
+}
+
+###draw plot d
+plot(0, xlim = c(0, (ncol(table) + 2)), ylim = c(0, 0.03), bty = "n", type = "n", xlab = "", ylab = "", 
+     xaxt = "n", main = "d")
+axis(1, at = 1:(ncol(table) + 2), labels = rep("", (ncol(table) + 2)))
+text(seq(from = 0.9, length = (ncol(table) + 2), by = 1),par("usr")[3] - 0.005,srt=90,adj=0,
+     labels=c(colnames(table), "NOR_14w", "NOR_27w"),xpd=T,font=1,cex=0.9, pos = 1)
+abline(v = 1:(ncol(table) +2), col = "gray")
+for ( i in 1:nrow(table)){
+  if(table[i,1] < table[i,2] && table[i,2] > table[i,3]){
+    rownumber <- rownumber + 1
+    speciesnames <- c(speciesnames, rownames(table)[i])
+    colornames <- c(colornames, palette[rownumber])
+    lines(1:3, as.vector(table[i,1:3]) , col = palette[rownumber], lwd = 2)
+    lines(4:6, as.vector(table[i,4:6]) , col = palette[rownumber], lwd = 2)
+    lines((ncol(table) + 1):(ncol(table) + 2), as.vector(data[rownames(table)[i], c("NOR_14w", "NOR_27w")]), 
+          col = palette[rownumber], lwd = 2)
+  }
+}
+par(mar = c(0,0,0,0))
+plot(0, xlim = c(0, (ncol(table) + 2)), ylim = c(0, 0.03), bty = "n", type = "n", xlab = "", ylab = "",
+     xaxt = "n", yaxt = "n")
+names(speciesnames) <- colornames
+speciesnames <- sort(speciesnames)
+legend("top", legend = speciesnames, col = names(speciesnames), lwd = 2, bty = "n", ncol = 2)
+
+```
+
+
+#Fig.4 Co-house of WT and Il-17a-/- mice corrects WT mice disorders induced by 
+    HFD through regulating gut microbiota
+##Fig 4-H
+* Unweighted UniFrac-based PCoA plot based on all OTUs
+```{r,cache=TRUE}
+par(opar)
+library(cluster)
+library(MASS)
+library(clusterSim)
+library(ade4)
+data <- profiling_species
+###Statistical Frac dist
+data.dist <- dist.Frac(data)
+###Statistical pam cluster
+data.cluster <- pam.clustering(data.dist, k=3)
+obs.silhouette <- mean(silhouette(data.cluster, data.dist)[,3])
+###silhouette coefficient ; The greater the value of classification, the better
+cat(obs.silhouette) #0.1899451
+
+
+###statistical pcoa
+obs.pcoa <- dudi.pco(data.dist, scannf=F, nf=3)
+###plot pcoa
+s.class(obs.pcoa$li, fac=as.factor(data.cluster), grid=F,sub="Principal coordiante analysis",
+        xlim = c(-0.4, 0.4),ylim = c(-0.4, 0.4), clabel = 0)
+text(obs.pcoa$li[,1], obs.pcoa$li[,2], rownames(obs.pcoa$li))
+
+```
+
+
+##Fig 4-I
+* The PCoA analysis focus on grouping sampled fecal
+  communities with respect to diet (NCD, HFD) and time of stool sampling (weeks 0,
+  14, 27, or HY) using principal components.
+  
+```{r,cache=TRUE,fig.height=7,fig.width=7}
+par(opar)
+###Load data
+data <- profiling_species_absolute
+data <- as.matrix(data[,c("KO_0w", "KO_27w", "KO_14w",  "WT_0w", "WT_14w", "WT_27w", 
+                          "NOR_27w","NOR_14w","WT_HY", "KO_HY", "NOR_HY")])
+###Abundance of species filter
+data[data <= 1e-6] <- 0
+###Statistical Frac dist
+data.dist=dist.Frac(data)
+###Statistical PCOA
+obs.pcoa=dudi.pco(data.dist, scannf=F, nf=10)
+rat <- obs.pcoa$eig/sum(obs.pcoa$eig) * 100
+plot(obs.pcoa$li[,2], obs.pcoa$li[,3], xlab = paste("PCoA2(", round(rat[2], digit = 2), "%)", sep = ""),
+     ylab = paste("PCoA3(", round(rat[3], digit = 2), "%)", sep = ""), xlim = c(-0.2, 0.2))
+text(obs.pcoa$li[,2], obs.pcoa$li[,3], rownames(obs.pcoa$li))
+```
+
+  
+  
+##Fig-4J
+* OTU sequences taxonomically assigned to bacterial genus from fecal metagenomes of WT or 
+  Il-17a-/- mice at week 27 and  week-HY. “KO” means Il-17a-/- mice
+
+```{r,cache=TRUE,fig.height=6,fig.width=8}
+par(opar)
+###set layout
+par(mfrow = c(1,2), xpd = NA)
+profile <- profiling_species
+profile <- profile[, c("WT_27w", "KO_27w", "WT_HY", "KO_HY")]
+###remvoe the sum of each row ==0
+profile <- profile[which(rowSums(profile) > 0),]
+rowsums <- rowSums(profile)
+table <- as.matrix(profile[order(-rowsums), ])
+###Set drawing parameters
+spa <- 0.2
+width <- 1
+colornumber <- 20
+top <- 12
+
+blacked <- T
+if(nrow(table) > top+1){
+  merge_low_abundance <- function(x, vector_name){
+    others_ind <- order(-x)[-(1:top)]
+    others <- sum(x[others_ind])
+    x[others_ind] <- 0
+    x <- c(x, others = others)
+    x
+  }
+  tabletmp <- apply(table, 2, merge_low_abundance, vector_name = rownames(table))
+  rowsum <- apply(tabletmp, 1, sum)
+  tabletmp <- tabletmp[which(rowsum != 0),]
+  table <- as.data.frame(tabletmp[1:(nrow(tabletmp) -1),])
+  table2 <- as.data.frame(table)
+  table <- table[do.call(order, -table2),]
+  table <- as.matrix(rbind(table, others = tabletmp["others",]))
+}else{
+  blacked <- F
+  table <- table[do.call(order, -as.data.frame(table)),]
+  table <- as.matrix(table)
+  top <- nrow(table)
+}
+###draw barplot
+barplot(table, col = colfunc(nrow(table)), ylab = "Relative abundance", xaxt = "n", main = "Genus")
+text(seq(from = 0.7,length = ncol(table), by=spa + width),par("usr")[3] - 0.01,
+     labels=c("WT", "KO", "WT", "KO"),xpd=T,font=1,cex=0.8, pos = 1)
+segments(0.4, -0.1, 2.2, -0.1)
+segments(2.8, -0.1, 4.6, -0.1)
+text(c(1.3, 3.7),par("usr")[3] - 0.1,labels=c("WT", "KO"),xpd=T,font=1,cex=1, pos = 1)
+plot(0, type = "n", xaxt = "n", yaxt = "n", bty ="n", xlab = "", ylab = "", 
+     xlim = c(-1, 1), ylim = c(-1, 1))
+legend(-1.9, 0.8, pch = 15, col = rev(colfunc(nrow(table))), legend = rev(rownames(table)),
+       bty = "n", pt.cex = 2, ncol = 1, xpd = NA)
+
+```
+
+
+#Fig.5 The network of top 30 species
+##Fig5-A
+```{r,cache=TRUE,fig.width=14,fig.height=7}
+par(opar)
+###Load data
+data <- profiling_species_absolute
+###Abundance of species filter
+data[data <= 1e-6] <- 0
+data <- apply(data, 2, uniform)
+vect <- c("NOR_27w", "NOR_HY", "KO_27w", "KO_HY", "WT_27w", "WT_HY")
+tops <- 30
+###set drawing parameters
+width <- 1
+spa <- 1
+cols=c("blue", "red", "green", "violet", "gold", "pink")
+data2 <- data[, vect]
+sumvect <- apply(data2, 1, sum)
+data3 <- data2[order(-sumvect),]
+data3 <- data3[-1,]
+###set layout
+par(mar = c(14,5,2,2))
+###draw barplot
+barplot(t(data3[1:tops,]), beside = T, col = cols[1:length(vect)],xaxt = "n",
+        ylab = "Relative abundance")
+text(seq(from = (length(vect) + 1) * width,length = tops, by= spa + length(vect) * width),
+     (par("usr")[3] - 0.01),srt=45,adj=1,labels=rownames(data3)[1:tops],xpd=T,font=1,cex=0.8, pos = 2)
+legend("topright", legend = colnames(data3), pch = 15, 
+       col = cols[1:length(vect)], pt.cex = 2, bty = "n")
+###end
+```
+
+#Fig.6 Upregulated or downregulated modules in HFD-14w vs 0w, 27w vs 14w and 874 27w vs 0w We use the other drawing software.**
+
+
+
+
+

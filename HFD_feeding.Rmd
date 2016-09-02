@@ -3,10 +3,12 @@ title: "Supplementary Methods"
 author: "wucy"
 date: "Tuesday, August 30, 2016"
 output:
+  html_document:
+    toc: yes
   pdf_document:
-    toc: true
-    toc_depth: 1
     highlight: pygments
+    toc: yes
+    toc_depth: 1
 ---
 
 #Fig.1 Effects of IL-17 on body weight during HFD feeding
@@ -24,12 +26,9 @@ This beginning workspace contains:
 * `profile_phylum`: Relative abundance on phylum
 * `profile_genus`: Relative abundance on genus
 ```{r,cache=TRUE}
-# profiling_species_absolute <- read.table("wucy/lipidmice.species", sep = "\t",header=T, row.names=1, dec=".")
-# profiling_species <- read.table("wucy/uniform_lipidmice.species",sep="\t",header=T,row.names=1,dec=".")
-# profile_phylum <- read.table("wucy/uniform_lipidmice.phylum",sep="\t",header=T,row.names = 1,dec=".")
-# profile_genus <- read.table("wucy/uniform_lipidmice.genus",sep="\t",header=T,row.names = 1,dec=".")
+
 ###Load the necessary data.
-load("data/fig3a-abc.RData")
+load("data/data.RData")
 ###Row: the name of the species; Col: the name of the sample.
 head(profiling_species_absolute)
 ###Row: the name of the species; Col: the name of the sample.
@@ -172,9 +171,7 @@ legend(-1.9, 0.8, pch = 15, col = rev(colfunc(nrow(table))), legend = rev(rownam
 library("grid") 
 library("VennDiagram")
 ### species composition  use data absolute
-data <- profiling_species_absolute
-###Abundance of species filter
-data[data <= 1e-6] <- 0
+data <- profiling_species
 data <- apply(data, 2, uniform)
 data <- as.data.frame(data)
 ###the sample list,KO_0w VS WT_0w,KO_14w Vs WT_14w,KO_27w vs WT_27w
@@ -200,10 +197,6 @@ for(i in 1:(length(samplelist)/2)*2-1){
 }
 
 ```
-![](KO_0w_WT_0w.png)
-![](KO_14w_WT_14w.png)
-![](KO_27w_WT_27w.png)
-
 
 
 ##A. fig3-C
@@ -291,7 +284,7 @@ legend("topright", legend = colnames(appeartimes2), pch = 15, col = c("red", "pi
 ##Fig3-D
 * `right`: Right: tendency of species proportion
 
-```{r,cache=TRUE,fig.height=6,width=8}
+```{r,cache=TRUE,fig.height=6,width=8,eval=FALSE}
 par(opar)
 data <- profiling_species_absolute
 ###Abundance of species filter
@@ -548,7 +541,7 @@ text(obs.pcoa$li[,2], obs.pcoa$li[,3], rownames(obs.pcoa$li))
 * OTU sequences taxonomically assigned to bacterial genus from fecal metagenomes of WT or 
   Il-17a-/- mice at week 27 and  week-HY. “KO” means Il-17a-/- mice
 
-```{r,cache=TRUE,fig.height=6,fig.width=8}
+```{r,cache=TRUE,eval=FALSE,fig.height=6,fig.width=8}
 par(opar)
 ###set layout
 par(mfrow = c(1,2), xpd = NA)
